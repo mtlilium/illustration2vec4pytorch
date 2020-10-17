@@ -52,7 +52,6 @@ class I2VNet(torch.nn.Module):
 
         self.tag_classifier = nn.Sequential(OrderedDict([
             ('conv6_4', nn.Conv2d(in_channels=1024, out_channels=self.tag_len, kernel_size=(3, 3), stride=(1, 1), padding=1)),
-            ('relu6_4', nn.ReLU(inplace=True)),
             ('pool6', nn.AvgPool2d(kernel_size=(7,7), stride=(1,1)))
         ]))
 

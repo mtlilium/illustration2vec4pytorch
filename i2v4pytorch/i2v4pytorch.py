@@ -11,7 +11,7 @@ from torch.autograd import Variable
 from scipy.ndimage import zoom
 from skimage.transform import resize
 
-
+from PIL import Image
 class PytorchI2V(Illustration2VecBase):
     def __init__(self, *args, **kwargs):
         super(PytorchI2V, self).__init__(*args, **kwargs)
@@ -47,13 +47,13 @@ class PytorchI2V(Illustration2VecBase):
     def _image_loader(self, image_name):
         # image size should be 224x224(resized after PIL opening)
         loader = T.Compose([
-                            #T.Resize(224),
+                            T.Resize((224,224)),
                             T.ToTensor(),
                             T.Normalize(mean = self.mean,
                                         std = self.std)])
         for img in image_name: # batch
             img = img[:, :, [2, 1, 0]] # RGB -> BGR
-            image_name = loader(img).unsqueeze(0)
+            image_name = loader(T.functional.to_pil_image(img, mode='RGB')).unsqueeze(0)
         return image_name
 
     def _extract(self, inputs):
@@ -61,12 +61,13 @@ class PytorchI2V(Illustration2VecBase):
         input_ = np.zeros(shape, dtype=np.float32)
         for ix, in_ in enumerate(inputs):
             input_[ix] = self.resize_image(in_, shape[1:])
-        input_ = input_[:, :, :, ::-1]  # RGB to BGR
+        input_ = input_[:, :, :, ::-1]  # RGB to BGR (PIL load mode is RGB, But i2v inputs are BGR)
         input_ -= self.caffe_mean  # subtract mean
         input_ = input_.transpose((0, 3, 1, 2))  # (N, H, W, C) -> (N, C, H, W)
-        input_ = torch.from_numpy(input_.copy()).float()
-        inputs = self._image_loader(inputs)
-        inputs = Variable(input_).to(self.device)
+        inputs = torch.from_numpy(input_.copy()).float()
+
+        # inputs = self._image_loader(inputs)
+        inputs = Variable(inputs).to(self.device)
         return self.net(inputs)
 
     def _init_param(self):
